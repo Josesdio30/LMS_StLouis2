@@ -12,6 +12,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface User {
   id: number;
@@ -435,6 +445,8 @@ const UserManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [classCourses, setClassCourses] = useState<any[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -540,6 +552,37 @@ const UserManagement = () => {
     }
   };
 
+  const handleDeleteClick = (user: User) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+
+    try {
+      const response = await fetch(`/api/admin/users/${userToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        alert('User berhasil dihapus!');
+        await fetchData();
+        setDeleteDialogOpen(false);
+        setUserToDelete(null);
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.message || errorData.error || 'Failed to delete user'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Error deleting user');
+    }
+  };
+
   const handleMenuClick = () => {
     setIsMobileOpen(true);
   };
@@ -631,6 +674,7 @@ const UserManagement = () => {
                                 size="sm" 
                                 variant="outline" 
                                 className="flex items-center gap-1 text-red-600 hover:text-red-700"
+                                onClick={() => handleDeleteClick(user)}
                               >
                                 <FaTrash className="text-xs" />
                                 Hapus
@@ -674,6 +718,34 @@ const UserManagement = () => {
           classCourses={classCourses}
         />
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus user <strong>{userToDelete?.nama_lengkap}</strong>?
+              <br />
+              <br />
+              User akan dinonaktifkan dan tidak dapat login ke sistem.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteDialogOpen(false);
+              setUserToDelete(null);
+            }}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
