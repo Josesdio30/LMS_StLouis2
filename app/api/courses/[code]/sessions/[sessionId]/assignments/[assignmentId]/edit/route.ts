@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 // PUT /api/courses/[code]/sessions/[sessionId]/assignments/[assignmentId]/edit
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { code: string; sessionId: string; assignmentId: string } }
+  context: { params: Promise<{ code: string; sessionId: string; assignmentId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -16,7 +16,10 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Await params in Next.js 15
+    const params = await context.params;
     const assignmentId = parseInt(params.assignmentId);
+    
     if (isNaN(assignmentId)) {
       return NextResponse.json({ error: 'Invalid assignment ID' }, { status: 400 });
     }

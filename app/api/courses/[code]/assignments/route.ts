@@ -2,11 +2,39 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import { PrismaClient } from '@/lib/generated/prisma';
+import type { Prisma } from '@/lib/generated/prisma';
 
 const prisma = new PrismaClient();
 
+// Define the include type
+const assignmentInclude = {
+  assignment_questions: {
+    orderBy: { order_number: 'asc' as const },
+    include: {
+      assignment_question_options: {
+        orderBy: { order_number: 'asc' as const },
+      },
+    },
+  },
+  assignment_submissions: {
+    include: {
+      app_user_assignment_submissions_student_idToapp_user: {
+        select: {
+          id: true,
+          nama_lengkap: true,
+          user_name: true,
+        },
+      },
+    },
+  },
+  enumeration: true,
+} satisfies Prisma.assignmentsInclude;
+
 // GET /api/courses/[code]/assignments - Get all assignments for a course
-export async function GET(request: NextRequest, { params }: { params: { code: string } }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ code: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -14,8 +42,9 @@ export async function GET(request: NextRequest, { params }: { params: { code: st
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { code } = await params;
-    const courseCode = code;
+    // Await params in Next.js 15
+    const params = await context.params;
+    const courseCode = params.code;
     const isTeacher = session.user.role === 'TEACHER' || session.user.role === 'ADMIN';
 
     // Get the course with all its sessions and assignments
@@ -29,28 +58,7 @@ export async function GET(request: NextRequest, { params }: { params: { code: st
             sessions: {
               include: {
                 assignments: {
-                  include: {
-                    assignment_questions: {
-                      orderBy: { order_number: 'asc' },
-                      include: {
-                        assignment_question_options: {
-                          orderBy: { order_number: 'asc' },
-                        },
-                      },
-                    },
-                    assignment_submissions: {
-                      include: {
-                        app_user_assignment_submissions_student_idToapp_user: {
-                          select: {
-                            id: true,
-                            nama_lengkap: true,
-                            user_name: true,
-                          },
-                        },
-                      },
-                    },
-                    enumeration: true, // assignment type
-                  },
+                  include: assignmentInclude,
                   orderBy: { created_date: 'desc' },
                 },
               },
@@ -65,7 +73,8 @@ export async function GET(request: NextRequest, { params }: { params: { code: st
     }
 
     // Flatten all assignments from all sessions
-    const allAssignments = [];
+    const allAssignments: any[] = [];
+    
     for (const classCourse of courseData.class_courses) {
       for (const session of classCourse.sessions) {
         for (const assignment of session.assignments) {
@@ -89,14 +98,14 @@ export async function GET(request: NextRequest, { params }: { params: { code: st
             session_title: session.title,
             session_description: session.description,
             session_number: session.session_number,
-            questions: assignment.assignment_questions.map(question => ({
+            questions: assignment.assignment_questions.map((question) => ({
               id: question.id,
               question_text: question.question_text,
               points: question.points,
               question_type_id: question.question_type_id,
               order_number: question.order_number,
               required: question.required,
-              options: question.assignment_question_options.map(option => ({
+              options: question.assignment_question_options.map((option) => ({
                 id: option.id,
                 option_text: option.option_text,
                 // Only include is_correct for teachers/admins
@@ -104,7 +113,7 @@ export async function GET(request: NextRequest, { params }: { params: { code: st
                 order_number: option.order_number,
               })),
             })),
-            submissions: assignment.assignment_submissions.map(submission => ({
+            submissions: assignment.assignment_submissions.map((submission) => ({
               id: submission.id,
               student: {
                 id: submission.app_user_assignment_submissions_student_idToapp_user.id,

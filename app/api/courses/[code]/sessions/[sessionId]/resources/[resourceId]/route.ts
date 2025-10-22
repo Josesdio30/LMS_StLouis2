@@ -10,8 +10,13 @@ interface RouteParams {
 }
 
 // GET - Get individual resource
-export async function GET(request: NextRequest, { params }: { params: RouteParams }) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<RouteParams> }
+) {
   try {
+    // Await params in Next.js 15
+    const params = await context.params;
     const { resourceId } = params;
     const resourceIdNum = parseInt(resourceId);
 
@@ -69,8 +74,13 @@ export async function GET(request: NextRequest, { params }: { params: RouteParam
 }
 
 // DELETE - Delete resource
-export async function DELETE(request: NextRequest, { params }: { params: RouteParams }) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<RouteParams> }
+) {
   try {
+    // Await params in Next.js 15
+    const params = await context.params;
     const { code, sessionId, resourceId } = params;
     const resourceIdNum = parseInt(resourceId);
     const sessionIdNum = parseInt(sessionId);
