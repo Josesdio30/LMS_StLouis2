@@ -5,10 +5,9 @@ import { authOptions } from '@/auth';
 
 const prisma = new PrismaClient();
 
-// PUT /api/courses/[code]/sessions/[sessionId]/assignments/[assignmentId]/edit
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { code: string; sessionId: string; assignmentId: string } }
+  { params }: { params: Promise<{ code: string; sessionId: string; assignmentId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -16,7 +15,8 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const assignmentId = parseInt(params.assignmentId);
+    const resolvedParams = await params;
+    const assignmentId = parseInt(resolvedParams.assignmentId);
     if (isNaN(assignmentId)) {
       return NextResponse.json({ error: 'Invalid assignment ID' }, { status: 400 });
     }
@@ -36,7 +36,6 @@ export async function PUT(
       questions,
     } = body;
 
-    // Check if assignment exists and user has permission to edit
     const existingAssignment = await prisma.assignments.findUnique({
       where: { id: assignmentId },
       include: {
@@ -53,7 +52,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
     }
 
-    // Check if user is the creator or has permission to edit
     if (existingAssignment.created_by !== parseInt(session.user.id)) {
       return NextResponse.json({ error: 'Forbidden: You can only edit assignments you created' }, { status: 403 });
     }
@@ -61,7 +59,6 @@ export async function PUT(
     const hasSubmissions = existingAssignment.assignment_submissions.length > 0;
 
     if (hasSubmissions) {
-      // For assignments with submissions, only allow safe field updates
       const updatedAssignment = await prisma.assignments.update({
         where: { id: assignmentId },
         data: {
@@ -83,9 +80,7 @@ export async function PUT(
       });
     }
 
-    // Use transaction to update assignment and questions
     const result = await prisma.$transaction(async tx => {
-      // Update the assignment
       const updatedAssignment = await tx.assignments.update({
         where: { id: assignmentId },
         data: {
@@ -103,7 +98,6 @@ export async function PUT(
         },
       });
 
-      // Delete existing questions and options
       await tx.assignment_question_options.deleteMany({
         where: {
           assignment_questions: {
@@ -116,7 +110,6 @@ export async function PUT(
         where: { assignment_id: assignmentId },
       });
 
-      // Create new questions
       for (const [index, question] of questions.entries()) {
         const createdQuestion = await tx.assignment_questions.create({
           data: {
@@ -129,7 +122,6 @@ export async function PUT(
           },
         });
 
-        // Create options if they exist
         if (question.options && question.options.length > 0) {
           for (const option of question.options) {
             await tx.assignment_question_options.create({

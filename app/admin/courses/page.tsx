@@ -239,8 +239,6 @@ const CourseManagement = () => {
           )}
         </div>
       </div>
-    )}
-
     {/* Add Course Modal */}
     {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

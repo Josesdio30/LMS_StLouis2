@@ -5,8 +5,10 @@ import { PrismaClient } from '@/lib/generated/prisma';
 
 const prisma = new PrismaClient();
 
-// GET /api/courses/[code]/assignments - Get all assignments for a course
-export async function GET(request: NextRequest, { params }: { params: { code: string } }) {
+export async function GET(
+  request: NextRequest, 
+  { params }: { params: Promise<{ code: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -18,7 +20,6 @@ export async function GET(request: NextRequest, { params }: { params: { code: st
     const courseCode = code;
     const isTeacher = session.user.role === 'TEACHER' || session.user.role === 'ADMIN';
 
-    // Get the course with all its sessions and assignments
     const courseData = await prisma.courses.findUnique({
       where: {
         course_code: courseCode,
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest, { params }: { params: { code: st
                         },
                       },
                     },
-                    enumeration: true, // assignment type
+                    enumeration: true,
                   },
                   orderBy: { created_date: 'desc' },
                 },
@@ -64,12 +65,10 @@ export async function GET(request: NextRequest, { params }: { params: { code: st
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    // Flatten all assignments from all sessions
     const allAssignments = [];
     for (const classCourse of courseData.class_courses) {
       for (const session of classCourse.sessions) {
         for (const assignment of session.assignments) {
-          // Transform the assignment data
           const transformedAssignment = {
             id: assignment.id,
             title: assignment.title,
@@ -99,7 +98,6 @@ export async function GET(request: NextRequest, { params }: { params: { code: st
               options: question.assignment_question_options.map(option => ({
                 id: option.id,
                 option_text: option.option_text,
-                // Only include is_correct for teachers/admins
                 ...(isTeacher && { is_correct: option.is_correct }),
                 order_number: option.order_number,
               })),
@@ -123,7 +121,6 @@ export async function GET(request: NextRequest, { params }: { params: { code: st
       }
     }
 
-    // Sort assignments by creation date (newest first)
     allAssignments.sort((a, b) => {
       const dateA = a.created_date ? new Date(a.created_date).getTime() : 0;
       const dateB = b.created_date ? new Date(b.created_date).getTime() : 0;
