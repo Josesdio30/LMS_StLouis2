@@ -32,7 +32,7 @@ export async function PUT(
     }
 
     const isAdmin = userDetails.app_user_role?.some(
-      role => role.enumeration?.name === 'ADMIN' && role.is_active
+      role => role.enumeration?.name?.toLowerCase() === 'admin' && role.is_active
     );
 
     if (!isAdmin) {
@@ -293,7 +293,7 @@ export async function DELETE(
     }
 
     const isAdmin = userDetails.app_user_role?.some(
-      role => role.enumeration?.name === 'ADMIN' && role.is_active
+      role => role.enumeration?.name?.toLowerCase() === 'admin' && role.is_active
     );
 
     if (!isAdmin) {

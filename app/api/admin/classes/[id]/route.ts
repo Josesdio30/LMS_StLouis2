@@ -25,7 +25,7 @@ async function checkAdminAccess(session: any) {
   }
 
   const isAdmin = userDetails.app_user_role?.some(
-    role => role.enumeration?.name === 'ADMIN' && role.is_active
+    role => role.enumeration?.name?.toLowerCase() === 'admin' && role.is_active
   );
 
   if (!isAdmin) {
@@ -35,8 +35,9 @@ async function checkAdminAccess(session: any) {
   return { isAdmin: true };
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params;
     const session = await getServerSession(authOptions);
     const { isAdmin, error } = await checkAdminAccess(session);
     
@@ -142,8 +143,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const params = await context.params;
     const session = await getServerSession(authOptions);
     const { isAdmin, error } = await checkAdminAccess(session);
     

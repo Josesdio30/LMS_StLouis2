@@ -25,7 +25,7 @@ async function checkAdminAccess(session: any) {
   }
 
   const isAdmin = userDetails.app_user_role?.some(
-    role => role.enumeration?.name === 'ADMIN' && role.is_active
+    role => role.enumeration?.name?.toLowerCase() === 'admin' && role.is_active
   );
 
   if (!isAdmin) {
@@ -64,11 +64,6 @@ export async function GET(request: NextRequest) {
 
     // Get all classes
     const classes = await prisma.classes.findMany({
-      where: {
-        academic_years: {
-          is_active: true,
-        },
-      },
       include: {
         academic_years: true,
       },

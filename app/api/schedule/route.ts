@@ -92,11 +92,11 @@ export async function GET(request: NextRequest) {
 
     const isStudent =
       userDetails.student_details !== null ||
-      userDetails.app_user_role?.some(role => role.enumeration?.name === 'STUDENT' && role.is_active);
+      userDetails.app_user_role?.some(role => role.enumeration?.name?.toLowerCase() === 'student' && role.is_active);
     const isTeacher =
       userDetails.teacher_details !== null ||
-      userDetails.app_user_role?.some(role => role.enumeration?.name === 'TEACHER' && role.is_active);
-    const isAdmin = userDetails.app_user_role?.some(role => role.enumeration?.name === 'ADMIN' && role.is_active);
+      userDetails.app_user_role?.some(role => role.enumeration?.name?.toLowerCase() === 'teacher' && role.is_active);
+    const isAdmin = userDetails.app_user_role?.some(role => role.enumeration?.name?.toLowerCase() === 'admin' && role.is_active);
 
     console.log('Role Determination:', {
       isStudent,

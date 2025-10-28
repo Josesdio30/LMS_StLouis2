@@ -286,7 +286,7 @@ const Schedule = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
 
-  const { scheduleData, loading, error, fetchDateSchedule, fetchMonthSchedule } = useSchedule(
+  const { scheduleData, loading, error, fetchDateSchedule, fetchMonthSchedule, refetch } = useSchedule(
     selectedDate,
     currentMonth
   );
@@ -350,13 +350,16 @@ const Schedule = () => {
       });
 
       if (response.ok) {
-        // Refresh schedule data
-        fetchDateSchedule(selectedDate || new Date());
+        // Refresh schedule data using the hook's refetch function
+        refetch();
       } else {
-        console.error('Failed to add session');
+        const errorData = await response.json();
+        console.error('Failed to add session:', errorData);
+        alert(`Gagal menambah session: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error adding session:', error);
+      alert('Terjadi kesalahan saat menambah session');
     }
   };
 
