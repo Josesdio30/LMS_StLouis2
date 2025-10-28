@@ -1,6 +1,4 @@
-import { PrismaClient } from '@/lib/generated/prisma';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // Cache for enumeration values to avoid repeated database calls
 const enumerationCache = new Map<string, number>();
