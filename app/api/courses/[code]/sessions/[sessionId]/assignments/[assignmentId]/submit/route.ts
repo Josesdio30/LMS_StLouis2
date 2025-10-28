@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@/lib/generated/prisma';
+import { prisma } from '@/lib/prisma';
 import { SubmissionStatus } from '@/lib/enumeration-service';
 import { calculateAssignmentScore } from '@/lib/scoringUtils';
-
-const prisma = new PrismaClient();
 
 // POST /api/courses/[code]/sessions/[sessionId]/assignments/[assignmentId]/submit
 export async function POST(

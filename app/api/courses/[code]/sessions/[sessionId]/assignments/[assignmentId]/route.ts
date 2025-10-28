@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@/lib/generated/prisma';
+import { prisma } from '@/lib/prisma';
 import { SubmissionStatus } from '@/lib/enumeration-service';
-
-const prisma = new PrismaClient();
 
 // GET /api/courses/[code]/sessions/[sessionId]/assignments/[assignmentId]
 export async function GET(

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@/lib/generated/prisma';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // GET /api/courses/[code]/sessions/[sessionId]/assignments
 export async function GET(request: NextRequest, { params }: { params: Promise<{ code: string; sessionId: string }> }) {
