@@ -6,7 +6,8 @@ const sql = postgres({
   username: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
   port: parseInt(process.env.POSTGRES_PORT || '5432'),
-  ssl: process.env.NODE_ENV === 'production' ? 'require' : false,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 10,
 });
 
 export default sql;
