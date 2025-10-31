@@ -152,7 +152,7 @@ const Sidebar = ({ isMobileOpen, setIsMobileOpen }: SidebarProps) => {
   }, [session]);
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: '/login' });
+    await signOut({ callbackUrl: `${window.location.origin}/login` });
   };
 
   const handleMobileItemClick = () => {
