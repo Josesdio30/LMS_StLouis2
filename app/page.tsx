@@ -4,21 +4,17 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-function useAuthGuard() {
+export default function HomePage() {
   const { status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
+    if (status === 'authenticated') {
+      router.replace('/dashboard');
+    } else if (status === 'unauthenticated') {
+      router.replace('/login');
     }
   }, [status, router]);
 
-  return status;
-}
-
-export default function HomePage() {
-  useAuthGuard();
-
-  return null;
+  return <div>Loading...</div>;
 }
