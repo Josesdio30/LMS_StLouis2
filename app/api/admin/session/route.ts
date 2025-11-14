@@ -153,6 +153,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Update teacher_id jika berbeda atau null (admin bisa reassign teacher)
+    if (classCourse.teacher_id !== parseInt(teacherId)) {
+      classCourse = await prisma.class_courses.update({
+        where: { id: classCourse.id },
+        data: { teacher_id: parseInt(teacherId) },
+      });
+    }
+
     // Create session
     const newSession = await prisma.sessions.create({
       data: {
