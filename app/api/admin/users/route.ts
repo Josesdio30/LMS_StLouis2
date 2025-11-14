@@ -99,9 +99,20 @@ export async function GET(request: NextRequest) {
           ?.map(role => role.enumeration?.name || '')
           ?.filter(Boolean) || [],
         created_date: user.created_date,
+        tanggal_lahir: user.tanggal_lahir,
         has_student_details: !!user.student_details,
         has_teacher_details: !!user.teacher_details,
         has_admin_details: !!user.admin_details,
+        // Add student details
+        nis: user.student_details?.nis || '',
+        nisn: user.student_details?.nisn || '',
+        parent_contact: user.student_details?.parent_contact || '',
+        // Add teacher details
+        kode_guru: user.teacher_details?.kode_guru || '',
+        niy: user.teacher_details?.niy || '',
+        // Add admin details
+        kode_admin: user.admin_details?.kode_admin || '',
+        nip: user.admin_details?.nip || '',
         // Add class information for students
         class_info: classInfo,
       };
@@ -270,46 +281,27 @@ export async function POST(request: NextRequest) {
 
     // Create enrollment if STUDENT role is selected and class_id is provided
     if (role === '1' && class_id) {
-      // Find existing class_course record for this class
-      let classCourse = await prisma.class_courses.findFirst({
+      // Find ALL existing class_course records for this class
+      const classCourses = await prisma.class_courses.findMany({
         where: {
           class_id: parseInt(class_id),
           is_active: true,
         },
       });
 
-      if (!classCourse) {
-        // Get the first available course to create a class_course record
-        const firstCourse = await prisma.courses.findFirst();
-        
-        if (!firstCourse) {
-          return NextResponse.json(
-            { success: false, error: 'Tidak ada course yang tersedia untuk enrollment' },
-            { status: 400 }
-          );
-        }
-
-        // Create a class_course record with the first available course
-        classCourse = await prisma.class_courses.create({
-          data: {
-            class_id: parseInt(class_id),
-            course_id: firstCourse.id,
-            start_date: new Date(),
-            end_date: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-            is_active: true,
-          },
+      // Enroll student ke semua class_course yang ada untuk class ini
+      if (classCourses.length > 0) {
+        await prisma.enrollments.createMany({
+          data: classCourses.map(classCourse => ({
+            student_id: newUser.id,
+            class_course_id: classCourse.id,
+            roll_number: 1, // Default roll number
+            enrollment_date: new Date(),
+          })),
+          skipDuplicates: true, // Skip jika sudah ada (untuk safety)
         });
       }
-
-      // Create enrollment
-      await prisma.enrollments.create({
-        data: {
-          student_id: newUser.id,
-          class_course_id: classCourse.id,
-          roll_number: 1, // Default roll number
-          enrollment_date: new Date(),
-        },
-      });
+      // Jika belum ada class_course, student akan otomatis ter-enroll saat admin create session
     }
 
     return NextResponse.json({

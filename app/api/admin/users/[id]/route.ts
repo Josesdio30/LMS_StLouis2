@@ -194,46 +194,27 @@ export async function PUT(
         where: { student_id: userId },
       });
 
-      // Find existing class_course record for this class
-      let classCourse = await prisma.class_courses.findFirst({
+      // Find ALL existing class_course records for this class
+      const classCourses = await prisma.class_courses.findMany({
         where: {
           class_id: parseInt(class_id),
           is_active: true,
         },
       });
 
-      if (!classCourse) {
-        // Get the first available course to create a class_course record
-        const firstCourse = await prisma.courses.findFirst();
-        
-        if (!firstCourse) {
-          return NextResponse.json(
-            { success: false, error: 'Tidak ada course yang tersedia untuk enrollment' },
-            { status: 400 }
-          );
-        }
-
-        // Create a class_course record with the first available course
-        classCourse = await prisma.class_courses.create({
-          data: {
-            class_id: parseInt(class_id),
-            course_id: firstCourse.id,
-            start_date: new Date(),
-            end_date: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-            is_active: true,
-          },
+      // Enroll student ke semua class_course yang ada untuk class ini
+      if (classCourses.length > 0) {
+        await prisma.enrollments.createMany({
+          data: classCourses.map(classCourse => ({
+            student_id: userId,
+            class_course_id: classCourse.id,
+            roll_number: 1, // Default roll number
+            enrollment_date: new Date(),
+          })),
+          skipDuplicates: true, // Skip jika sudah ada (untuk safety)
         });
       }
-
-      // Create enrollment
-      await prisma.enrollments.create({
-        data: {
-          student_id: userId,
-          class_course_id: classCourse.id,
-          roll_number: 1, // Default roll number
-          enrollment_date: new Date(),
-        },
-      });
+      // Jika belum ada class_course, student akan otomatis ter-enroll saat admin create session
     } else if (role !== '1') {
       // If not student, delete any existing enrollments
       await prisma.enrollments.deleteMany({

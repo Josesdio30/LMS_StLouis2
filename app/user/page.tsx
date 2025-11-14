@@ -21,6 +21,19 @@ interface User {
   is_active: boolean;
   roles: string[];
   created_date: string;
+  class_info?: {
+    class_id: number;
+    class_name: string;
+    grade_level: string;
+  } | null;
+  nis?: string;
+  nisn?: string;
+  parent_contact?: string;
+  kode_guru?: string;
+  niy?: string;
+  kode_admin?: string;
+  nip?: string;
+  tanggal_lahir?: string;
 }
 
 interface Role {
@@ -78,9 +91,8 @@ const AddUserModal = ({ isOpen, onClose, onSave, initialData = null, isEditMode 
       } else if (initialData.class_info && initialData.class_info.class_id) {
         classId = initialData.class_info.class_id.toString();
       }
-      if (!classId && classCourses.length > 0) {
-        classId = classCourses[0].id.toString();
-      }
+      // Don't set default class if no class found - let user select
+      
       setFormData({
         nama_lengkap: initialData.nama_lengkap || '',
         email: initialData.email || '',
@@ -472,22 +484,12 @@ const UserManagement = () => {
   }, []);
 
   const handleEditClick = (user: any) => {
-    console.log('handleEditClick called with user:', user);
-    console.log('classCourses:', classCourses);
-
-    let classId = '';
-    if (user.class_info && user.class_info.class_id) {
-      classId = user.class_info.class_id.toString();
-    } else if (classCourses.length > 0) {
-      classId = classCourses[0].id.toString();
-    }
-
+    // Prepare user data with all fields for editing
     const updatedUserData = {
       ...user,
-      class_id: classId,
+      class_id: user.class_info?.class_id?.toString() || '',
     };
 
-    console.log('Setting editUserData:', updatedUserData);
     setEditUserData(updatedUserData);
     setIsEditModalOpen(true);
   };
@@ -583,6 +585,7 @@ const UserManagement = () => {
                         <th className="text-left p-3 border-b">Email</th>
                         <th className="text-left p-3 border-b">Username</th>
                         <th className="text-left p-3 border-b">Role</th>
+                        <th className="text-left p-3 border-b">Kelas</th>
                         <th className="text-left p-3 border-b">Status</th>
                         <th className="text-left p-3 border-b">Aksi</th>
                       </tr>
@@ -604,6 +607,15 @@ const UserManagement = () => {
                                 </span>
                               ))}
                             </div>
+                          </td>
+                          <td className="p-3">
+                            {user.roles.includes('STUDENT') && user.class_info ? (
+                              <span className="text-sm text-gray-700">
+                                {user.class_info.class_name} ({user.class_info.grade_level})
+                              </span>
+                            ) : (
+                              <span className="text-sm text-gray-400">-</span>
+                            )}
                           </td>
                           <td className="p-3">
                             <span

@@ -161,6 +161,61 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Auto-enroll semua student di class ini ke class_course ini jika belum ter-enroll
+    // Cari semua student yang sudah ter-enroll ke class_course lain di class yang sama
+    const existingEnrollments = await prisma.enrollments.findMany({
+      where: {
+        class_courses: {
+          class_id: parseInt(classId),
+        },
+      },
+      include: {
+        app_user: {
+          include: {
+            student_details: true,
+            app_user_role: {
+              include: {
+                enumeration: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Ambil unique student IDs yang sudah ter-enroll di class ini
+    const enrolledStudentIds = new Set(
+      existingEnrollments
+        .filter(e => 
+          e.app_user?.student_details && 
+          e.app_user?.app_user_role?.some(
+            role => role.enumeration?.name?.toLowerCase() === 'student' && role.is_active
+          )
+        )
+        .map(e => e.student_id)
+        .filter((id): id is number => id !== null)
+    );
+
+    // Cek student mana yang belum ter-enroll ke class_course ini
+    const studentsToEnroll = Array.from(enrolledStudentIds).filter(studentId => {
+      return !existingEnrollments.some(
+        e => e.student_id === studentId && e.class_course_id === classCourse.id
+      );
+    });
+
+    // Auto-enroll students yang belum ter-enroll
+    if (studentsToEnroll.length > 0) {
+      await prisma.enrollments.createMany({
+        data: studentsToEnroll.map(studentId => ({
+          student_id: studentId,
+          class_course_id: classCourse.id,
+          roll_number: 1, // Default roll number
+          enrollment_date: new Date(),
+        })),
+        skipDuplicates: true, // Skip jika sudah ada (untuk safety)
+      });
+    }
+
     // Create session
     const newSession = await prisma.sessions.create({
       data: {
