@@ -68,15 +68,19 @@ export async function GET(request: NextRequest) {
           include: {
             class_courses: {
               include: {
-                classes: true,
+                classes: {
+                  include: {
+                    academic_years: true,
+                  },
+                },
               },
             },
           },
         });
 
-        // Get the first active enrollment
+        // Get the first active enrollment with active class_course
         const activeEnrollment = studentEnrollments.find(enrollment => 
-          enrollment.class_courses?.is_active
+          enrollment.class_courses?.is_active && enrollment.class_courses?.classes
         );
 
         if (activeEnrollment?.class_courses?.classes) {

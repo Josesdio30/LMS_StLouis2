@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Ambil unique student IDs yang sudah ter-enroll di class ini
+    // Ambil unique student IDs yang sudah ter-enroll di class ini (dari class_course manapun)
     const enrolledStudentIds = new Set(
       existingEnrollments
         .filter(e => 
@@ -196,11 +196,25 @@ export async function POST(request: NextRequest) {
         .filter((id): id is number => id !== null)
     );
 
-    // Cek student mana yang belum ter-enroll ke class_course ini
+    // Cek student mana yang belum ter-enroll ke class_course ini secara spesifik
+    const existingEnrollmentsForThisClassCourse = await prisma.enrollments.findMany({
+      where: {
+        class_course_id: classCourse.id,
+      },
+      select: {
+        student_id: true,
+      },
+    });
+
+    const enrolledInThisClassCourse = new Set(
+      existingEnrollmentsForThisClassCourse
+        .map(e => e.student_id)
+        .filter((id): id is number => id !== null)
+    );
+
+    // Filter student yang sudah ter-enroll di class ini tapi belum ter-enroll di class_course ini
     const studentsToEnroll = Array.from(enrolledStudentIds).filter(studentId => {
-      return !existingEnrollments.some(
-        e => e.student_id === studentId && e.class_course_id === classCourse.id
-      );
+      return !enrolledInThisClassCourse.has(studentId);
     });
 
     // Auto-enroll students yang belum ter-enroll
