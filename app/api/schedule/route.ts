@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,6 +11,7 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    
     const { searchParams } = new URL(request.url);
     const dateParam = searchParams.get('date'); // Format: YYYY-MM-DD
     const monthParam = searchParams.get('month'); // Format: YYYY-MM
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     if (dateParam) {
       const [year, month, day] = dateParam.split('-').map(Number);
-      const targetDate = new Date(year, month - 1, day); // month is 0-indexed
+      const targetDate = new Date(year, month - 1, day);
 
       const startOfDay = new Date(targetDate);
       startOfDay.setHours(0, 0, 0, 0);
@@ -36,10 +36,10 @@ export async function GET(request: NextRequest) {
     } else if (monthParam) {
       const [year, month] = monthParam.split('-').map(Number);
 
-      const startOfMonth = new Date(year, month - 1, 1); // month is 0-indexed
+      const startOfMonth = new Date(year, month - 1, 1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      const endOfMonth = new Date(year, month, 0); // Last day of the month
+      const endOfMonth = new Date(year, month, 0);
       endOfMonth.setHours(23, 59, 59, 999);
 
       whereClause.start_time = {
@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
         },
       },
     });
+    
     if (!userDetails) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
@@ -88,6 +89,7 @@ export async function GET(request: NextRequest) {
         isActive: role.is_active,
       })),
     });
+    
     let sessions: any[] = [];
 
     const isStudent =
@@ -106,37 +108,51 @@ export async function GET(request: NextRequest) {
     });
 
     if (isStudent) {
+      // FIXED: First get all class_course_ids where student is enrolled
       const enrollments = await prisma.enrollments.findMany({
         where: { student_id: userId },
-        include: {
-          class_courses: {
-            include: {
-              sessions: {
-                where: whereClause,
-                include: {
-                  class_courses: {
-                    include: {
-                      courses: true,
-                      classes: true,
-                      app_user: {
-                        include: {
-                          user_profile: true,
-                          teacher_details: true,
-                        },
-                      },
-                    },
+        select: {
+          class_course_id: true,
+        },
+      });
+
+      const classCourseIds = enrollments.map(e => e.class_course_id).filter((id): id is number => id !== null);
+
+      console.log('Student enrolled in class_course IDs:', classCourseIds);
+
+      // Then fetch sessions for those class_courses with date filter
+      if (classCourseIds.length > 0) {
+        sessions = await prisma.sessions.findMany({
+          where: {
+            class_course_id: {
+              in: classCourseIds,
+            },
+            ...whereClause, // Apply date filter here at session level
+          },
+          include: {
+            class_courses: {
+              include: {
+                courses: true,
+                classes: true,
+                app_user: {
+                  include: {
+                    user_profile: true,
+                    teacher_details: true,
                   },
-                },
-                orderBy: {
-                  start_time: 'asc',
                 },
               },
             },
           },
-        },
-      });
+          orderBy: {
+            start_time: 'asc',
+          },
+        });
 
-      sessions = enrollments.flatMap(enrollment => enrollment.class_courses?.sessions || []);
+        console.log('Sessions found for student:', sessions.length);
+      } else {
+        console.log('Student not enrolled in any class_courses');
+        sessions = [];
+      }
     } else if (isTeacher) {
       const teacherCourses = await prisma.class_courses.findMany({
         where: { teacher_id: userId },
@@ -166,7 +182,6 @@ export async function GET(request: NextRequest) {
 
       sessions = teacherCourses.flatMap(course => course.sessions || []);
     } else if (isAdmin) {
-      // Admin can see all sessions
       const allSessions = await prisma.sessions.findMany({
         where: whereClause,
         include: {
@@ -190,6 +205,7 @@ export async function GET(request: NextRequest) {
 
       sessions = allSessions;
     }
+    
     const scheduleData = sessions.map(session => ({
       id: session.id,
       subject: session.class_courses?.courses?.course_name || 'Unknown Course',
@@ -237,33 +253,49 @@ export async function GET(request: NextRequest) {
     let allSessions: any[] = [];
 
     if (isStudent) {
+      // FIXED: Use same approach for calendar dots
       const allEnrollments = await prisma.enrollments.findMany({
         where: { student_id: userId },
-        include: {
-          class_courses: {
-            include: {
-              sessions: {
-                where: monthWhereClause,
-                include: {
-                  class_courses: {
-                    include: {
-                      courses: true,
-                      classes: true,
-                      app_user: {
-                        include: {
-                          user_profile: true,
-                          teacher_details: true,
-                        },
-                      },
-                    },
+        select: {
+          class_course_id: true,
+        },
+      });
+
+      const allClassCourseIds = allEnrollments.map(e => e.class_course_id).filter((id): id is number => id !== null);
+
+      console.log('Calendar dots - class_course IDs:', allClassCourseIds);
+
+      if (allClassCourseIds.length > 0) {
+        allSessions = await prisma.sessions.findMany({
+          where: {
+            class_course_id: {
+              in: allClassCourseIds,
+            },
+            ...monthWhereClause,
+          },
+          include: {
+            class_courses: {
+              include: {
+                courses: true,
+                classes: true,
+                app_user: {
+                  include: {
+                    user_profile: true,
+                    teacher_details: true,
                   },
                 },
               },
             },
           },
-        },
-      });
-      allSessions = allEnrollments.flatMap(enrollment => enrollment.class_courses?.sessions || []);
+          orderBy: {
+            start_time: 'asc',
+          },
+        });
+
+        console.log('Calendar dots - sessions found:', allSessions.length);
+      } else {
+        allSessions = [];
+      }
     } else if (isTeacher) {
       const allTeacherCourses = await prisma.class_courses.findMany({
         where: { teacher_id: userId },
@@ -289,7 +321,6 @@ export async function GET(request: NextRequest) {
       });
       allSessions = allTeacherCourses.flatMap(course => course.sessions || []);
     } else if (isAdmin) {
-      // Admin can see all sessions for calendar dots
       allSessions = await prisma.sessions.findMany({
         where: monthWhereClause,
         include: {
@@ -311,6 +342,7 @@ export async function GET(request: NextRequest) {
         },
       });
     }
+    
     const uniqueDates = new Set(allSessions.map(session => format(new Date(session.start_time), 'yyyy-MM-dd')));
     allDatesWithSchedule = Array.from(uniqueDates);
 
@@ -326,6 +358,7 @@ export async function GET(request: NextRequest) {
       allSessionsCount: allSessions.length,
       allDatesWithSchedule,
     });
+    
     if (!dateParam) {
       const groupedSchedule: Record<string, typeof scheduleData> = {};
 
