@@ -149,39 +149,37 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const existingEnrollments = await prisma.enrollments.findMany({
+    const allClassCoursesInClass = await prisma.class_courses.findMany({
       where: {
-        class_courses: {
-          class_id: parseInt(classId),
-        },
+        class_id: parseInt(classId),
+        is_active: true,
       },
-      include: {
-        app_user: {
-          include: {
-            student_details: true,
-            app_user_role: {
-              include: {
-                enumeration: true,
-              },
-            },
+      select: {
+        id: true,
+        enrollments: {
+          select: {
+            student_id: true,
           },
         },
       },
     });
 
-    const enrolledStudentIds = new Set(
-      existingEnrollments
-        .filter(e => 
-          e.app_user?.student_details && 
-          e.app_user?.app_user_role?.some(
-            role => role.enumeration?.name?.toLowerCase() === 'student' && role.is_active
-          )
-        )
-        .map(e => e.student_id)
-        .filter((id): id is number => id !== null)
-    );
+    console.log('=== AUTO-ENROLLMENT DEBUG ===');
+    console.log('Total class_courses found:', allClassCoursesInClass.length);
 
-    const existingEnrollmentsForThisClassCourse = await prisma.enrollments.findMany({
+    const allStudentIds = new Set<number>();
+    for (const cc of allClassCoursesInClass) {
+      console.log(`Class course ${cc.id}: ${cc.enrollments.length} enrollments`);
+      for (const enrollment of cc.enrollments) {
+        if (enrollment.student_id) {
+          allStudentIds.add(enrollment.student_id);
+        }
+      }
+    }
+
+    console.log('Unique students in class:', Array.from(allStudentIds));
+
+    const studentsAlreadyEnrolled = await prisma.enrollments.findMany({
       where: {
         class_course_id: classCourse.id,
       },
@@ -190,18 +188,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const enrolledInThisClassCourse = new Set(
-      existingEnrollmentsForThisClassCourse
+    const enrolledSet = new Set(
+      studentsAlreadyEnrolled
         .map(e => e.student_id)
         .filter((id): id is number => id !== null)
     );
 
-    const studentsToEnroll = Array.from(enrolledStudentIds).filter(studentId => {
-      return !enrolledInThisClassCourse.has(studentId);
-    });
+    console.log('Already enrolled in this class_course:', Array.from(enrolledSet));
+
+    const studentsToEnroll = Array.from(allStudentIds).filter(
+      studentId => !enrolledSet.has(studentId)
+    );
+
+    console.log('Students to auto-enroll:', studentsToEnroll);
 
     if (studentsToEnroll.length > 0) {
-      await prisma.enrollments.createMany({
+      const result = await prisma.enrollments.createMany({
         data: studentsToEnroll.map(studentId => ({
           student_id: studentId,
           class_course_id: classCourse.id,
@@ -210,7 +212,11 @@ export async function POST(request: NextRequest) {
         })),
         skipDuplicates: true,
       });
+      console.log('Enrollments created:', result.count);
+    } else {
+      console.log('No students to enroll');
     }
+    console.log('===========================');
 
     const newSession = await prisma.sessions.create({
       data: {
