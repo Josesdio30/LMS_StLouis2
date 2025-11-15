@@ -5,13 +5,11 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get session for authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
     const userDetails = await prisma.app_user.findUnique({
       where: { id: parseInt(session.user.id) },
       include: {
@@ -48,7 +46,6 @@ export async function POST(request: NextRequest) {
       sessionNumber
     } = body;
 
-    // Validate required fields
     if (!title || !startTime || !endTime || !date || !courseCode || !teacherId || !classId || !sessionNumber) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
@@ -56,7 +53,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse and validate date/time
     const sessionDate = new Date(date);
     const startDateTime = new Date(`${date}T${startTime}`);
     const endDateTime = new Date(`${date}T${endTime}`);
@@ -68,7 +64,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if teacher exists
     const teacher = await prisma.app_user.findUnique({
       where: { id: parseInt(teacherId) },
       include: {
@@ -83,7 +78,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if class exists
     const classData = await prisma.classes.findUnique({
       where: { id: parseInt(classId) },
     });
@@ -95,7 +89,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if course exists
     const course = await prisma.courses.findUnique({
       where: { course_code: courseCode },
     });
@@ -107,7 +100,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if class_course exists or create it
     let classCourse = await prisma.class_courses.findFirst({
       where: {
         course_id: course.id,
@@ -118,7 +110,6 @@ export async function POST(request: NextRequest) {
 
     if (!classCourse) {
       try {
-        // Create new class_course
         classCourse = await prisma.class_courses.create({
           data: {
             course_id: course.id,
@@ -130,7 +121,6 @@ export async function POST(request: NextRequest) {
           },
         });
       } catch (err: any) {
-        // Jika error duplikat (P2002), ambil data yang sudah ada
         if (err.code === 'P2002') {
           classCourse = await prisma.class_courses.findFirst({
             where: {
@@ -145,7 +135,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Pastikan classCourse tidak null
     if (!classCourse) {
       return NextResponse.json(
         { success: false, error: 'Gagal mendapatkan atau membuat class_courses' },
@@ -153,7 +142,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update teacher_id jika berbeda atau null (admin bisa reassign teacher)
     if (classCourse.teacher_id !== parseInt(teacherId)) {
       classCourse = await prisma.class_courses.update({
         where: { id: classCourse.id },
@@ -161,8 +149,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Auto-enroll semua student di class ini ke class_course ini jika belum ter-enroll
-    // Cari semua student yang sudah ter-enroll ke class_course lain di class yang sama
     const existingEnrollments = await prisma.enrollments.findMany({
       where: {
         class_courses: {
@@ -183,7 +169,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Ambil unique student IDs yang sudah ter-enroll di class ini (dari class_course manapun)
     const enrolledStudentIds = new Set(
       existingEnrollments
         .filter(e => 
@@ -196,7 +181,6 @@ export async function POST(request: NextRequest) {
         .filter((id): id is number => id !== null)
     );
 
-    // Cek student mana yang belum ter-enroll ke class_course ini secara spesifik
     const existingEnrollmentsForThisClassCourse = await prisma.enrollments.findMany({
       where: {
         class_course_id: classCourse.id,
@@ -212,25 +196,22 @@ export async function POST(request: NextRequest) {
         .filter((id): id is number => id !== null)
     );
 
-    // Filter student yang sudah ter-enroll di class ini tapi belum ter-enroll di class_course ini
     const studentsToEnroll = Array.from(enrolledStudentIds).filter(studentId => {
       return !enrolledInThisClassCourse.has(studentId);
     });
 
-    // Auto-enroll students yang belum ter-enroll
     if (studentsToEnroll.length > 0) {
       await prisma.enrollments.createMany({
         data: studentsToEnroll.map(studentId => ({
           student_id: studentId,
           class_course_id: classCourse.id,
-          roll_number: 1, // Default roll number
+          roll_number: 1,
           enrollment_date: new Date(),
         })),
-        skipDuplicates: true, // Skip jika sudah ada (untuk safety)
+        skipDuplicates: true,
       });
     }
 
-    // Create session
     const newSession = await prisma.sessions.create({
       data: {
         title,
@@ -273,13 +254,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Get session for authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
     const userDetails = await prisma.app_user.findUnique({
       where: { id: parseInt(session.user.id) },
       include: {
@@ -374,4 +353,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
