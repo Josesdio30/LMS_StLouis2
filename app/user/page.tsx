@@ -173,61 +173,81 @@ const AddUserModal = ({ isOpen, onClose, onSave, initialData = null, isEditMode 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!formData.nama_lengkap || !formData.email || !formData.user_name || 
         !formData.role || !formData.tanggal_lahir) {
       alert('Mohon lengkapi semua field yang diperlukan');
       return;
     }
 
-    // Always generate password from tanggal_lahir (both create & edit mode)
+    // SELALU generate password dari tanggal_lahir (baik tambah maupun edit)
     const tanggalLahir = new Date(formData.tanggal_lahir);
     const day = tanggalLahir.getDate().toString().padStart(2, '0');
     const month = (tanggalLahir.getMonth() + 1).toString().padStart(2, '0');
     const year = tanggalLahir.getFullYear();
     const autoPassword = `s!nLui2+${day}${month}${year}`;
 
-    const payload = {
+    // Payload DASAR
+    let payload: any = {
       ...formData,
-      password: autoPassword,
-      ...(formData.role === '1' && {
-        nis: formData.nis,
-        nisn: formData.nisn,
-        parent_contact: formData.parent_contact,
-        class_id: formData.class_id,
-      }),
-      ...(formData.role === '2' && {
-        kode_guru: formData.kode_guru,
-        niy: formData.niy,
-      }),
-      ...(formData.role === '3' && {
-        kode_admin: formData.kode_admin,
-        nip: formData.nip,
-      }),
+      password: autoPassword, // SELALU kirim password baru ini
     };
+
+    // Tambahkan field khusus sesuai role
+    if (formData.role === '1') { // STUDENT
+      payload = {
+        ...payload,
+        nis: formData.nis || null,
+        nisn: formData.nisn || null,
+        parent_contact: formData.parent_contact || null,
+        class_id: formData.class_id ? parseInt(formData.class_id) : null,
+      };
+    } else if (formData.role === '2') { // TEACHER
+      payload = {
+        ...payload,
+        kode_guru: formData.kode_guru || null,
+        niy: formData.niy || null,
+      };
+    } else if (formData.role === '3') { // ADMIN
+      payload = {
+        ...payload,
+        kode_admin: formData.kode_admin || null,
+        nip: formData.nip || null,
+      };
+    }
+
+    // Hapus field yang tidak dibutuhkan backend
+    delete payload.confirmPassword;
+
+    // Jika edit mode, pastikan ID ikut
+    if (isEditMode && formData.id) {
+      payload.id = formData.id;
+    }
+
+    console.log('Payload yang dikirim:', payload); // buat debugging
 
     onSave(payload);
     onClose();
-    
-    if (!isEditMode) {
-      setFormData({
-        nama_lengkap: '',
-        email: '',
-        user_name: '',
-        password: '',
-        confirmPassword: '',
-        role: '',
-        tanggal_lahir: '',
-        nis: '',
-        nisn: '',
-        parent_contact: '',
-        kode_guru: '',
-        niy: '',
-        kode_admin: '',
-        nip: '',
-        class_id: '',
-        id: undefined,
-      });
-    }
+
+    // Reset form
+    setFormData({
+      nama_lengkap: '',
+      email: '',
+      user_name: '',
+      password: '',
+      confirmPassword: '',
+      role: '',
+      tanggal_lahir: '',
+      nis: '',
+      nisn: '',
+      parent_contact: '',
+      kode_guru: '',
+      niy: '',
+      kode_admin: '',
+      nip: '',
+      class_id: '',
+      id: undefined,
+    });
   };
 
   return (
