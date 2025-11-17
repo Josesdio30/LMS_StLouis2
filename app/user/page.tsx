@@ -179,14 +179,12 @@ const AddUserModal = ({ isOpen, onClose, onSave, initialData = null, isEditMode 
       return;
     }
 
-    let autoPassword = formData.password;
-    if (!isEditMode) {
-      const tanggalLahir = new Date(formData.tanggal_lahir);
-      const day = tanggalLahir.getDate().toString().padStart(2, '0');
-      const month = (tanggalLahir.getMonth() + 1).toString().padStart(2, '0');
-      const year = tanggalLahir.getFullYear();
-      autoPassword = `s!nLui2+${day}${month}${year}`;
-    }
+    // Always generate password from tanggal_lahir (both create & edit mode)
+    const tanggalLahir = new Date(formData.tanggal_lahir);
+    const day = tanggalLahir.getDate().toString().padStart(2, '0');
+    const month = (tanggalLahir.getMonth() + 1).toString().padStart(2, '0');
+    const year = tanggalLahir.getFullYear();
+    const autoPassword = `s!nLui2+${day}${month}${year}`;
 
     const payload = {
       ...formData,
