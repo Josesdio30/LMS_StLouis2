@@ -119,9 +119,18 @@ export async function PUT(
     };
 
     // Hash password if provided
-    if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
+    // Always generate password from birth date if not provided or empty
+    let finalPassword = password;
+    if (!password || password.trim() === '') {
+      const birthDate = new Date(tanggal_lahir);
+      const day = birthDate.getDate().toString().padStart(2, '0');
+      const month = (birthDate.getMonth() + 1).toString().padStart(2, '0');
+      const year = birthDate.getFullYear();
+      finalPassword = `s!nLui2+${day}${month}${year}`;
     }
+
+    // Hash the password
+    updateData.password = await bcrypt.hash(finalPassword, 10);
 
     // Update user
     await prisma.app_user.update({
