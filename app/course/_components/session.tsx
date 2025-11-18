@@ -256,37 +256,12 @@ const formatTime = (timeString: string) => {
   }
 
   try {
-    let date: Date;
-    const timeRegex = /^\d{1,2}:\d{2}(:\d{2})?$/;
-    const isTimeFormat = timeRegex.test(timeString);
-
-    if (isTimeFormat) {
-      const today = new Date();
-      const [hours, minutes, seconds = '00'] = timeString.split(':');
-
-      date = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate(),
-        parseInt(hours),
-        parseInt(minutes),
-        parseInt(seconds)
-      );
-    } else {
-      date = new Date(timeString);
-
-      if (timeString.includes('Z') || timeString.includes('+00:00')) {
-        const utcHours = date.getUTCHours();
-        const utcMinutes = date.getUTCMinutes();
-
-        date = new Date();
-        date.setHours(utcHours, utcMinutes, 0, 0);
-      }
-    }
+    const date = new Date(timeString);
     const formatted = date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
+      timeZone: 'Asia/Jakarta'
     });
 
     return formatted;
