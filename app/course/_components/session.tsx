@@ -251,6 +251,7 @@ const SessionSelector = ({
 };
 
 const formatTime = (timeString: string) => {
+  console.log('🕐 formatTime called with:', timeString);
   if (!timeString) {
     return 'Not set';
   }
