@@ -100,10 +100,21 @@ const CourseDetail = () => {
     );
   }
 
-  const classCourse = course.class_courses?.[0];
-  const teacher = classCourse?.teacher || {};
-  const students = classCourse?.students || [];
-  const sessions = classCourse?.sessions || [];
+  // ✅ FIX: Find the class_course that contains the active session
+  const activeClassCourse = course.class_courses?.find((cc: any) =>
+    cc.sessions?.some((s: any) => s.id === activeSession)
+  ) || course.class_courses?.[0];
+
+  const teacher = activeClassCourse?.teacher || {};
+  const students = activeClassCourse?.students || [];
+
+  // ✅ Merge sessions from ALL class_courses
+  const sessions = course.class_courses?.reduce((allSessions: any[], cc: any) => {
+    if (cc.sessions && Array.isArray(cc.sessions)) {
+      return [...allSessions, ...cc.sessions];
+    }
+    return allSessions;
+  }, []) || [];
 
   return (
     // <div className="flex min-h-screen w-full overflow-hidden">
@@ -133,7 +144,7 @@ const CourseDetail = () => {
                   <div className="flex flex-wrap items-center mt-1 gap-2 text-sm md:text-base">
                     <span className="text-gray-600">🔢 {course.course_code}</span>
                     <span className="text-gray-600 hidden sm:inline">•</span>
-                    <span className="text-gray-600">📚 {classCourse?.class_name}</span>
+                    <span className="text-gray-600">📚 {activeClassCourse?.class_name}</span>
                   </div>
                   <div className="flex items-center mt-1 text-sm md:text-base">
                     <span className="text-gray-600 mr-2">👤</span>
@@ -148,9 +159,8 @@ const CourseDetail = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-3 text-gray-700 font-semibold text-base whitespace-nowrap ${
-                    activeTab === tab ? 'border-b-4 border-blue-500 text-blue-500' : 'hover:text-blue-500'
-                  }`}
+                  className={`px-6 py-3 text-gray-700 font-semibold text-base whitespace-nowrap ${activeTab === tab ? 'border-b-4 border-blue-500 text-blue-500' : 'hover:text-blue-500'
+                    }`}
                 >
                   {tab}
                 </button>

@@ -91,14 +91,23 @@ const AddUserModal = ({ isOpen, onClose, onSave, initialData = null, isEditMode 
       } else if (initialData.class_info && initialData.class_info.class_id) {
         classId = initialData.class_info.class_id.toString();
       }
-      // Don't set default class if no class found - let user select
-      
+
+      // Generate password dari tanggal lahir untuk ditampilkan
+      let generatedPassword = '';
+      if (tanggalLahir) {
+        const birthDate = new Date(tanggalLahir);
+        const day = birthDate.getDate().toString().padStart(2, '0');
+        const month = (birthDate.getMonth() + 1).toString().padStart(2, '0');
+        const year = birthDate.getFullYear();
+        generatedPassword = `s!nLui2+${day}${month}${year}`;
+      }
+
       setFormData({
         nama_lengkap: initialData.nama_lengkap || '',
         email: initialData.email || '',
         user_name: initialData.user_name || '',
-        password: '',
-        confirmPassword: '',
+        password: generatedPassword, // ✅ TAMPILKAN password yang di-generate
+        confirmPassword: generatedPassword,
         role: initialData.roles ? (initialData.roles[0] === 'ADMIN' ? '3' : initialData.roles[0] === 'TEACHER' ? '2' : '1') : '',
         tanggal_lahir: tanggalLahir,
         nis: initialData.nis || '',
@@ -174,8 +183,8 @@ const AddUserModal = ({ isOpen, onClose, onSave, initialData = null, isEditMode 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.nama_lengkap || !formData.email || !formData.user_name || 
-        !formData.role || !formData.tanggal_lahir) {
+    if (!formData.nama_lengkap || !formData.email || !formData.user_name ||
+      !formData.role || !formData.tanggal_lahir) {
       alert('Mohon lengkapi semua field yang diperlukan');
       return;
     }
@@ -298,7 +307,24 @@ const AddUserModal = ({ isOpen, onClose, onSave, initialData = null, isEditMode 
                 id="tanggal_lahir"
                 type="date"
                 value={formData.tanggal_lahir}
-                onChange={(e) => setFormData({ ...formData, tanggal_lahir: e.target.value })}
+                onChange={(e) => {
+                  const newDate = e.target.value;
+                  // Auto-generate password dari tanggal lahir baru
+                  let newPassword = '';
+                  if (newDate) {
+                    const birthDate = new Date(newDate);
+                    const day = birthDate.getDate().toString().padStart(2, '0');
+                    const month = (birthDate.getMonth() + 1).toString().padStart(2, '0');
+                    const year = birthDate.getFullYear();
+                    newPassword = `s!nLui2+${day}${month}${year}`;
+                  }
+                  setFormData({
+                    ...formData,
+                    tanggal_lahir: newDate,
+                    password: newPassword,
+                    confirmPassword: newPassword
+                  });
+                }}
                 required
               />
             </div>
@@ -321,6 +347,53 @@ const AddUserModal = ({ isOpen, onClose, onSave, initialData = null, isEditMode 
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Password Fields - Auto-generated from birth date */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="password">Password (Auto-generated)</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Auto-generated dari tanggal lahir"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Format: s!nLui2+DDMMYYYY
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  placeholder="Konfirmasi password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Student Details */}
@@ -579,7 +652,7 @@ const UserManagement = () => {
                   <FaUsers className="text-blue-600" />
                   User Management
                 </CardTitle>
-                <Button 
+                <Button
                   onClick={() => setIsAddModalOpen(true)}
                   className="flex items-center gap-2"
                 >
@@ -637,29 +710,28 @@ const UserManagement = () => {
                           </td>
                           <td className="p-3">
                             <span
-                              className={`text-xs px-2 py-1 rounded-full ${
-                                user.is_active
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
+                              className={`text-xs px-2 py-1 rounded-full ${user.is_active
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                                }`}
                             >
                               {user.is_active ? 'Active' : 'Inactive'}
                             </span>
                           </td>
                           <td className="p-3">
                             <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="flex items-center gap-1" 
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex items-center gap-1"
                                 onClick={() => handleEditClick(user)}
                               >
                                 <FaEdit className="text-xs" />
                                 Edit
                               </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 className="flex items-center gap-1 text-red-600 hover:text-red-700"
                               >
                                 <FaTrash className="text-xs" />
