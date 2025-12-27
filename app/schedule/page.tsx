@@ -62,6 +62,7 @@ const AddSessionModal = ({
   const [classes, setClasses] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [teacherSearch, setTeacherSearch] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -237,11 +238,25 @@ const AddSessionModal = ({
                     <SelectValue placeholder="Pilih guru" />
                   </SelectTrigger>
                   <SelectContent>
-                    {teachers.map(teacher => (
-                      <SelectItem key={teacher.id} value={teacher.id.toString()}>
-                        {teacher.name} ({teacher.kode_guru})
-                      </SelectItem>
-                    ))}
+                    <div className="p-2">
+                      <Input
+                        placeholder="Cari guru..."
+                        value={teacherSearch}
+                        onChange={(e) => setTeacherSearch(e.target.value)}
+                        className="h-8"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    {teachers
+                      .filter(teacher =>
+                        teacher.name.toLowerCase().includes(teacherSearch.toLowerCase()) ||
+                        teacher.kode_guru.toLowerCase().includes(teacherSearch.toLowerCase())
+                      )
+                      .map(teacher => (
+                        <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                          {teacher.name} ({teacher.kode_guru})
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -307,6 +322,7 @@ const EditSessionModal = ({
   const [classes, setClasses] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [teacherSearch, setTeacherSearch] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -430,11 +446,25 @@ const EditSessionModal = ({
                   <SelectValue placeholder="Pilih guru (opsional untuk mengubah)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {teachers.map(teacher => (
-                    <SelectItem key={teacher.id} value={teacher.id.toString()}>
-                      {teacher.name} ({teacher.kode_guru})
-                    </SelectItem>
-                  ))}
+                  <div className="p-2">
+                    <Input
+                      placeholder="Cari guru..."
+                      value={teacherSearch}
+                      onChange={(e) => setTeacherSearch(e.target.value)}
+                      className="h-8"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  {teachers
+                    .filter(teacher =>
+                      teacher.name.toLowerCase().includes(teacherSearch.toLowerCase()) ||
+                      teacher.kode_guru.toLowerCase().includes(teacherSearch.toLowerCase())
+                    )
+                    .map(teacher => (
+                      <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                        {teacher.name} ({teacher.kode_guru})
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
