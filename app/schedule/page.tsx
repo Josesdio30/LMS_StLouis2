@@ -413,11 +413,10 @@ const Schedule = () => {
                       dailySchedule.map((item, index) => (
                         <Card
                           key={index}
-                          className={`mb-2 border border-gray-300 shadow-sm transition-all duration-200 ${
-                            item.course_code
-                              ? 'hover:shadow-lg hover:border-blue-300 cursor-pointer hover:bg-blue-50'
-                              : 'hover:shadow-md'
-                          }`}
+                          className={`mb-2 border border-gray-300 shadow-sm transition-all duration-200 ${item.course_code
+                            ? 'hover:shadow-lg hover:border-blue-300 cursor-pointer hover:bg-blue-50'
+                            : 'hover:shadow-md'
+                            }`}
                           onClick={() => {
                             if (item.course_code && item.id) {
                               router.push(`/course/${item.course_code}?sessionId=${item.id}`);
@@ -474,9 +473,8 @@ const Schedule = () => {
                         <div className="text-gray-600">
                           {userRole === 'ADMIN'
                             ? 'Belum ada session yang dijadwalkan untuk tanggal ini'
-                            : `You don't have any scheduled activities for ${
-                                selectedDate ? format(selectedDate, 'MMM dd, yyyy') : 'this date'
-                              }`}
+                            : `You don't have any scheduled activities for ${selectedDate ? format(selectedDate, 'MMM dd, yyyy') : 'this date'
+                            }`}
                         </div>
                       </div>
                     )}
@@ -496,6 +494,8 @@ const Schedule = () => {
                       onMonthChange={handleMonthChange}
                       className="rounded-md border shadow-sm bg-white"
                       captionLayout="dropdown"
+                      startMonth={new Date(1900, 0)}
+                      endMonth={new Date(2100, 11)}
                       modifiers={{
                         hasSchedule: datesWithSchedule,
                       }}
