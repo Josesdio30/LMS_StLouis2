@@ -245,6 +245,7 @@ const AddSessionModal = ({
                         onChange={(e) => setTeacherSearch(e.target.value)}
                         className="h-8"
                         onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
                       />
                     </div>
                     {teachers
@@ -453,6 +454,7 @@ const EditSessionModal = ({
                       onChange={(e) => setTeacherSearch(e.target.value)}
                       className="h-8"
                       onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
                     />
                   </div>
                   {teachers
