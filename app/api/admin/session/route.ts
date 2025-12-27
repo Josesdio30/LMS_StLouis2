@@ -68,10 +68,21 @@ export async function POST(request: NextRequest) {
       where: { id: parseInt(teacherId) },
       include: {
         teacher_details: true,
+        app_user_role: {
+          include: {
+            enumeration: true,
+          },
+        },
       },
     });
 
-    if (!teacher || !teacher.teacher_details) {
+    // Check if user exists and is a teacher (has teacher_details OR has teacher role)
+    const isTeacher = teacher?.teacher_details !== null ||
+      teacher?.app_user_role?.some(role =>
+        role.enumeration?.name?.toLowerCase() === 'teacher' && role.is_active
+      );
+
+    if (!teacher || !isTeacher) {
       return NextResponse.json(
         { success: false, error: 'Teacher not found' },
         { status: 404 }
