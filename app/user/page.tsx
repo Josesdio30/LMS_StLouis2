@@ -633,6 +633,33 @@ const UserManagement = () => {
     }
   };
 
+  const handleDeleteUser = async (userId: number) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus user ini?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/users/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (response.ok) {
+        alert('User berhasil dihapus!');
+        await fetchData();
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.message || errorData.error || 'Failed to delete user'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Error deleting user');
+    }
+  };
+
   const handleMenuClick = () => {
     setIsMobileOpen(true);
   };
@@ -733,6 +760,7 @@ const UserManagement = () => {
                                 size="sm"
                                 variant="outline"
                                 className="flex items-center gap-1 text-red-600 hover:text-red-700"
+                                onClick={() => handleDeleteUser(user.id)}
                               >
                                 <FaTrash className="text-xs" />
                                 Hapus
