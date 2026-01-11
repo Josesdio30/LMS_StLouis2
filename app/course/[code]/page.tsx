@@ -111,13 +111,8 @@ const CourseDetail = () => {
   const teacher = activeClassCourse?.teacher || {};
   const students = activeClassCourse?.students || [];
 
-  // ✅ Merge sessions from ALL class_courses
-  const sessions = course.class_courses?.reduce((allSessions: any[], cc: any) => {
-    if (cc.sessions && Array.isArray(cc.sessions)) {
-      return [...allSessions, ...cc.sessions];
-    }
-    return allSessions;
-  }, []) || [];
+  // ✅ FIX: Only get sessions from the active class_course, not all class_courses
+  const sessions = activeClassCourse?.sessions || [];
 
   return (
     // <div className="flex min-h-screen w-full overflow-hidden">
