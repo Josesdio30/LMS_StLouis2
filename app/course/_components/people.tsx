@@ -38,9 +38,10 @@ interface Student {
 
 interface PeopleProps {
   courseCode?: string;
+  classId?: number;
 }
 
-const People = ({ courseCode }: PeopleProps) => {
+const People = ({ courseCode, classId }: PeopleProps) => {
   const [activePeopleTab, setActivePeopleTab] = useState('Teacher');
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -55,7 +56,7 @@ const People = ({ courseCode }: PeopleProps) => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/courses/${courseCode}/people?type=teacher`);
+      const response = await fetch(`/api/courses/${courseCode}/people?type=teacher${classId ? `&classId=${classId}` : ''}`);
       const result = await response.json();
 
       if (result.success) {
@@ -71,7 +72,7 @@ const People = ({ courseCode }: PeopleProps) => {
     } finally {
       setLoading(false);
     }
-  }, [courseCode]);
+  }, [courseCode, classId]);
 
   // Fetch students data
   const fetchStudents = useCallback(async () => {
@@ -81,7 +82,7 @@ const People = ({ courseCode }: PeopleProps) => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/courses/${courseCode}/people?type=students`);
+      const response = await fetch(`/api/courses/${courseCode}/people?type=students${classId ? `&classId=${classId}` : ''}`);
       const result = await response.json();
 
       if (result.success) {
@@ -97,7 +98,7 @@ const People = ({ courseCode }: PeopleProps) => {
     } finally {
       setLoading(false);
     }
-  }, [courseCode]);
+  }, [courseCode, classId]);
 
   // Fetch all people data
   const fetchAllPeople = useCallback(async () => {
@@ -107,7 +108,7 @@ const People = ({ courseCode }: PeopleProps) => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/courses/${courseCode}/people?type=all`);
+      const response = await fetch(`/api/courses/${courseCode}/people?type=all${classId ? `&classId=${classId}` : ''}`);
       const result = await response.json();
 
       if (result.success) {
@@ -126,14 +127,14 @@ const People = ({ courseCode }: PeopleProps) => {
     } finally {
       setLoading(false);
     }
-  }, [courseCode]);
+  }, [courseCode, classId]);
 
-  // Load data when component mounts or courseCode changes
+  // Load data when component mounts or courseCode/classId changes
   useEffect(() => {
     if (courseCode) {
       fetchAllPeople();
     }
-  }, [courseCode, fetchAllPeople]);
+  }, [courseCode, classId, fetchAllPeople]);
 
   // Load specific data when tab changes
   useEffect(() => {
@@ -142,31 +143,19 @@ const People = ({ courseCode }: PeopleProps) => {
     } else if (courseCode && activePeopleTab === 'Students' && students.length === 0) {
       fetchStudents();
     }
-  }, [activePeopleTab, courseCode, teacher, students.length, fetchTeacher, fetchStudents]);
+  }, [activePeopleTab, courseCode, classId, teacher, students.length, fetchTeacher, fetchStudents]);
+
   return (
     <div className="flex-1">
       <div className="border border-gray-300 rounded-lg p-6 shadow-sm">
-        {/* Header with refresh button */}
-        {/* <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">Course People</h2>
-          <button
-            onClick={fetchAllPeople}
-            disabled={loading}
-            className="flex items-center gap-2 px-3 py-1 rounded text-gray-600 hover:bg-gray-200 transition-colors disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
-        </div> */}
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-300 mb-6">
           {['Teacher', 'Students'].map(tab => (
             <button
               key={tab}
               onClick={() => setActivePeopleTab(tab)}
-              className={`px-4 py-2 text-gray-700 font-semibold text-base ${
-                activePeopleTab === tab ? 'border-b-2 border-blue-500 text-blue-500' : 'hover:text-blue-500'
-              }`}
+              className={`px-4 py-2 text-gray-700 font-semibold text-base ${activePeopleTab === tab ? 'border-b-2 border-blue-500 text-blue-500' : 'hover:text-blue-500'
+                }`}
             >
               {tab}{' '}
               {tab === 'Teacher' ? (
