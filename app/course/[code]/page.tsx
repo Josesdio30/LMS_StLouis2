@@ -18,9 +18,10 @@ const CourseDetail = () => {
   const searchParams = useSearchParams();
   const code = typeof params === 'object' && 'code' in params ? params['code'] : null;
 
-  // Get sessionId and tab from URL search params
+  // Get sessionId, tab, and classId from URL search params
   const sessionIdParam = searchParams.get('sessionId');
   const tabParam = searchParams.get('tab');
+  const classIdParam = searchParams.get('classId');
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Session');
@@ -100,10 +101,12 @@ const CourseDetail = () => {
     );
   }
 
-  // ✅ FIX: Find the class_course that contains the active session
-  const activeClassCourse = course.class_courses?.find((cc: any) =>
-    cc.sessions?.some((s: any) => s.id === activeSession)
-  ) || course.class_courses?.[0];
+  // ✅ FIX: Find the class_course based on classId from URL, or fallback to finding by active session
+  const activeClassCourse = classIdParam
+    ? course.class_courses?.find((cc: any) => cc.class_id === parseInt(classIdParam))
+    : course.class_courses?.find((cc: any) =>
+      cc.sessions?.some((s: any) => s.id === activeSession)
+    ) || course.class_courses?.[0];
 
   const teacher = activeClassCourse?.teacher || {};
   const students = activeClassCourse?.students || [];

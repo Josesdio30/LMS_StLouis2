@@ -17,6 +17,7 @@ interface Course {
   description: string;
   class_name: string;
   grade_level: string;
+  class_id?: number;
 }
 
 const LoadingCard = () => (
@@ -36,7 +37,7 @@ const CourseCard = ({ course }: { course: Course }) => (
   <Link
     href={{
       pathname: `/course/${course.course_code}`,
-      query: { code: course.course_code },
+      query: { code: course.course_code, classId: course.class_id },
     }}
     className="block group"
   >
