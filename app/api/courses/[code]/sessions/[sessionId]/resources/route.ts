@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { notifyNewResource } from '@/lib/notification-service';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/auth';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ code: string; sessionId: string }> }) {
   try {
     const { code, sessionId } = await params;
     const sessionIdNum = parseInt(sessionId);
     const body = await request.json();
+
+    // Get current user session
+    const session = await getServerSession(authOptions);
+    const uploaderName = session?.user?.name || 'Guru';
 
     console.log('=== RESOURCE SAVE REQUEST ===');
     console.log('Course Code:', code);
@@ -26,7 +33,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Verify session exists
-    const session = await prisma.sessions.findFirst({
+    const sessionData = await prisma.sessions.findFirst({
       where: {
         id: sessionIdNum,
         class_courses: {
@@ -37,7 +44,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       },
     });
 
-    if (!session) {
+    if (!sessionData) {
       return NextResponse.json(
         {
           success: false,
@@ -46,11 +53,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
         { status: 404 }
       );
-    } // Create new resource in database using Prisma
+    }
+
+    // Create new resource in database using Prisma
     const newResource = await prisma.resources.create({
       data: {
         session_id: sessionIdNum,
-        uploader_id: 1,
+        uploader_id: session?.user?.id ? parseInt(session.user.id) : 1,
         file_url: body.file_url,
         file_name: body.file_name,
         file_tittle: body.file_tittle,
@@ -69,6 +78,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
       },
     });
+
+    // 🔔 Send notification to enrolled students
+    try {
+      const resourceTitle = body.file_tittle || body.file_name || 'File Baru';
+      await notifyNewResource(sessionIdNum, resourceTitle, uploaderName);
+      console.log('Notifications sent for new resource');
+    } catch (notifError) {
+      console.error('Failed to send notifications:', notifError);
+      // Don't fail the request if notification fails
+    }
 
     return NextResponse.json({
       success: true,
