@@ -595,8 +595,8 @@ const Forum = ({ courseCode, sessions }: ForumProps) => {
       )}
 
       <div className="flex flex-col h-[calc(100vh-200px)] bg-gray-50 rounded-lg shadow-sm border border-gray-300">
-        {/* Header */}{' '}
-        <div className="flex items-center justify-between p-4 border-b border-gray-300 bg-white rounded-t-lg">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border-b border-gray-300 bg-white rounded-t-lg gap-2 sm:gap-0">
           <div>
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
               <MessageSquare size={20} />
@@ -716,11 +716,11 @@ const Forum = ({ courseCode, sessions }: ForumProps) => {
             </div>
           </div>
         )}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
           {/* Posts List */}
-          <div className="w-1/2 border-r border-gray-300 flex flex-col">
+          <div className={`w-full md:w-1/2 border-b md:border-b-0 md:border-r border-gray-300 flex flex-col ${selectedPost ? 'hidden md:flex' : 'flex'}`}>
             <div className="p-3 bg-gray-100 border-b border-gray-300">
-              <h3 className="font-medium text-gray-700">Posts ({posts.length})</h3>
+              <h3 className="font-medium text-gray-700 text-sm sm:text-base">Posts ({posts.length})</h3>
             </div>
             <div className="flex-1 overflow-y-auto">
               {loading && posts.length === 0 ? (
@@ -765,11 +765,18 @@ const Forum = ({ courseCode, sessions }: ForumProps) => {
           </div>
 
           {/* Post Detail & Replies */}
-          <div className="w-1/2 flex flex-col">
+          <div className={`w-full md:w-1/2 flex flex-col ${selectedPost ? 'flex' : 'hidden md:flex'}`}>
             {selectedPost ? (
               <>
+                {/* Mobile Back Button */}
+                <button
+                  onClick={() => setSelectedPost(null)}
+                  className="md:hidden flex items-center gap-2 p-3 text-blue-600 hover:bg-blue-50 border-b border-gray-300"
+                >
+                  ← Kembali ke daftar post
+                </button>
                 {/* Post Detail */}
-                <div className="p-4 border-b border-gray-300 bg-white">
+                <div className="p-3 sm:p-4 border-b border-gray-300 bg-white">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-lg font-semibold text-gray-800">{selectedPost.title}</h3>
                     {(Number(user?.id) === selectedPost.author.id || user?.role === 'TEACHER' || user?.role === 'ADMIN') && (
