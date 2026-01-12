@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MessageSquare, Reply, Plus, Paperclip, Send, RefreshCw, User } from 'lucide-react';
+import { MessageSquare, Reply, Plus, Paperclip, Send, RefreshCw, User, Trash2 } from 'lucide-react';
 import { FaChevronDown } from 'react-icons/fa';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -517,6 +517,40 @@ const Forum = ({ courseCode, sessions }: ForumProps) => {
   // Format timestamp
   const formatTimestamp = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
+  };
+
+  // Delete post
+  const handleDeletePost = async (postId: number) => {
+    if (!courseCode || !forum) return;
+
+    const confirmDelete = window.confirm('Apakah Anda yakin ingin menghapus postingan ini?');
+    if (!confirmDelete) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/courses/${courseCode}/forums/${forum.id}/posts/${postId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Remove post from list
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        // Clear selected post if it was deleted
+        if (selectedPost?.id === postId) {
+          setSelectedPost(null);
+          setReplies([]);
+        }
+      } else {
+        setError(result.message || 'Gagal menghapus postingan');
+      }
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      setError('Network error saat menghapus postingan');
+    } finally {
+      setLoading(false);
+    }
   }; // Load forum on mount and when session changes
   useEffect(() => {
     fetchForum();
@@ -706,9 +740,8 @@ const Forum = ({ courseCode, sessions }: ForumProps) => {
                   <div
                     key={post.id}
                     onClick={() => setSelectedPost(post)}
-                    className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                      selectedPost?.id === post.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                    }`}
+                    className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${selectedPost?.id === post.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                      }`}
                   >
                     <h4 className="font-medium text-gray-800 mb-1">{post.title}</h4>
                     <p className="text-sm text-gray-600 mb-2 line-clamp-2">{post.content}</p>
@@ -737,7 +770,22 @@ const Forum = ({ courseCode, sessions }: ForumProps) => {
               <>
                 {/* Post Detail */}
                 <div className="p-4 border-b border-gray-300 bg-white">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">{selectedPost.title}</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-gray-800">{selectedPost.title}</h3>
+                    {(Number(user?.id) === selectedPost.author.id || user?.role === 'TEACHER' || user?.role === 'ADMIN') && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePost(selectedPost.id);
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 text-red-600 hover:bg-red-50 rounded transition-colors text-sm"
+                        title="Hapus postingan"
+                      >
+                        <Trash2 size={14} />
+                        Hapus
+                      </button>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
                     <User size={14} />
                     <span>{selectedPost.author.nama_lengkap}</span>
