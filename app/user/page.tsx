@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FaUsers, FaPlus, FaEdit, FaTrash, FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaUsers, FaPlus, FaEdit, FaTrash, FaSpinner, FaEye, FaEyeSlash, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Sidebar from '../_components/sidebar';
@@ -539,6 +539,16 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [classCourses, setClassCourses] = useState<any[]>([]);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Calculate paginated users
+  const totalPages = Math.ceil(users.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = users.slice(startIndex, endIndex);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -709,7 +719,7 @@ const UserManagement = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {users.map((user) => (
+                      {paginatedUsers.map((user) => (
                         <tr key={user.id} className="border-b hover:bg-gray-50">
                           <td className="p-3">{user.nama_lengkap}</td>
                           <td className="p-3">{user.email}</td>
@@ -771,6 +781,64 @@ const UserManagement = () => {
                       ))}
                     </tbody>
                   </table>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                      <div className="text-sm text-gray-600">
+                        Menampilkan {startIndex + 1} - {Math.min(endIndex, users.length)} dari {users.length} user
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                          className="flex items-center gap-1"
+                        >
+                          <FaChevronLeft className="text-xs" />
+                          Prev
+                        </Button>
+
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1)
+                            .filter(page => {
+                              // Show first, last, current, and adjacent pages
+                              return page === 1 ||
+                                page === totalPages ||
+                                Math.abs(page - currentPage) <= 1;
+                            })
+                            .map((page, index, array) => (
+                              <React.Fragment key={page}>
+                                {index > 0 && array[index - 1] !== page - 1 && (
+                                  <span className="px-2 text-gray-400">...</span>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant={currentPage === page ? "default" : "outline"}
+                                  onClick={() => setCurrentPage(page)}
+                                  className="min-w-[36px]"
+                                >
+                                  {page}
+                                </Button>
+                              </React.Fragment>
+                            ))
+                          }
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          disabled={currentPage === totalPages}
+                          className="flex items-center gap-1"
+                        >
+                          Next
+                          <FaChevronRight className="text-xs" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-12">
