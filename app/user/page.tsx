@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { FaUsers, FaPlus, FaEdit, FaTrash, FaSpinner, FaEye, FaEyeSlash, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FaUsers, FaPlus, FaEdit, FaTrash, FaSpinner, FaEye, FaEyeSlash, FaChevronLeft, FaChevronRight, FaSearch, FaFilter } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Sidebar from '../_components/sidebar';
@@ -539,15 +539,48 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [classCourses, setClassCourses] = useState<any[]>([]);
 
+  // Search and Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Calculate paginated users
-  const totalPages = Math.ceil(users.length / itemsPerPage);
+  // Filter users based on search and filters
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      // Search filter
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch = searchQuery === '' ||
+        user.nama_lengkap.toLowerCase().includes(searchLower) ||
+        user.email.toLowerCase().includes(searchLower) ||
+        user.user_name.toLowerCase().includes(searchLower);
+
+      // Role filter
+      const matchesRole = roleFilter === 'all' ||
+        user.roles.includes(roleFilter);
+
+      // Status filter
+      const matchesStatus = statusFilter === 'all' ||
+        (statusFilter === 'active' && user.is_active) ||
+        (statusFilter === 'inactive' && !user.is_active);
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, searchQuery, roleFilter, statusFilter]);
+
+  // Calculate paginated users from filtered results
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedUsers = users.slice(startIndex, endIndex);
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter, statusFilter]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -699,12 +732,70 @@ const UserManagement = () => {
               </div>
             </CardHeader>
             <CardContent>
+              {/* Search and Filter Controls */}
+              <div className="flex flex-col md:flex-row gap-4 mb-6">
+                {/* Search Input */}
+                <div className="relative flex-1">
+                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari nama, email, atau username..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Role Filter */}
+                <div className="flex items-center gap-2">
+                  <FaFilter className="text-gray-400" />
+                  <select
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="all">Semua Role</option>
+                    <option value="STUDENT">Student</option>
+                    <option value="TEACHER">Teacher</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                </div>
+
+                {/* Status Filter */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="all">Semua Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+
+              {/* Results count */}
+              <div className="text-sm text-gray-600 mb-4">
+                {filteredUsers.length} user ditemukan
+                {(searchQuery || roleFilter !== 'all' || statusFilter !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setRoleFilter('all');
+                      setStatusFilter('all');
+                    }}
+                    className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Reset filter
+                  </button>
+                )}
+              </div>
+
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <FaSpinner className="animate-spin text-blue-500 mr-2" />
                   <span className="text-gray-600">Loading users...</span>
                 </div>
-              ) : users.length > 0 ? (
+              ) : filteredUsers.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
@@ -786,7 +877,7 @@ const UserManagement = () => {
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between mt-4 pt-4 border-t">
                       <div className="text-sm text-gray-600">
-                        Menampilkan {startIndex + 1} - {Math.min(endIndex, users.length)} dari {users.length} user
+                        Menampilkan {startIndex + 1} - {Math.min(endIndex, filteredUsers.length)} dari {filteredUsers.length} user
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
