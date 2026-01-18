@@ -82,7 +82,7 @@ export async function PUT(
 
     // Check if email already exists (excluding current user)
     const existingEmail = await prisma.app_user.findFirst({
-      where: { 
+      where: {
         email,
         id: { not: userId }
       },
@@ -97,7 +97,7 @@ export async function PUT(
 
     // Check if username already exists (excluding current user)
     const existingUsername = await prisma.app_user.findFirst({
-      where: { 
+      where: {
         user_name,
         id: { not: userId }
       },
@@ -130,13 +130,17 @@ export async function PUT(
     }
 
     // Hash the password
+    console.log('🔐 Updating password for user:', userId);
+    console.log('🔐 Password to hash:', finalPassword);
     updateData.password = await bcrypt.hash(finalPassword, 10);
+    console.log('🔐 Hashed password length:', updateData.password.length);
 
     // Update user
-    await prisma.app_user.update({
+    const updatedUser = await prisma.app_user.update({
       where: { id: userId },
       data: updateData,
     });
+    console.log('✅ User updated, password hash saved:', updatedUser.password?.substring(0, 20) + '...');
 
     // Update user role
     await prisma.app_user_role.deleteMany({

@@ -78,6 +78,23 @@ const getResourceIcon = (fileType: string) => {
   }
 };
 
+// Convert file URL to view URL for inline display
+const getViewUrl = (fileUrl: string, fileType: string) => {
+  // If it's a link, return as-is
+  if (fileType === 'link') {
+    return fileUrl;
+  }
+
+  // If it starts with /uploads/, convert to view API
+  if (fileUrl.startsWith('/uploads/')) {
+    const pathAfterUploads = fileUrl.replace('/uploads/', '');
+    return `/api/files/view/${pathAfterUploads}`;
+  }
+
+  // Return as-is for external URLs
+  return fileUrl;
+};
+
 const SessionSelector = ({
   sessions,
   activeSession,
@@ -433,7 +450,7 @@ const ActionsSidebar = ({
                   <div className="flex-1 min-w-0">
                     {' '}
                     <a
-                      href={resource.file_url}
+                      href={getViewUrl(resource.file_url, resource.file_type)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-gray-700 truncate block font-medium hover:text-blue-600 transition-colors"
@@ -461,11 +478,11 @@ const ActionsSidebar = ({
                   {/* Resource Actions */}
                   <div className="flex items-center gap-1">
                     <a
-                      href={resource.file_url}
+                      href={getViewUrl(resource.file_url, resource.file_type)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                      title="Open resource"
+                      title="View resource"
                     >
                       <FaExternalLinkAlt className="text-xs" />
                     </a>
