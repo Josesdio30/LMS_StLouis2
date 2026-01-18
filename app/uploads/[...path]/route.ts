@@ -56,6 +56,11 @@ export async function GET(
         // Determine content type
         const ext = path.extname(absolutePath).toLowerCase().slice(1);
         const contentType = CONTENT_TYPE_MAP[ext] || 'application/octet-stream';
+        const fileName = path.basename(absolutePath);
+
+        // Files that can be displayed inline in the browser
+        const inlineTypes = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mp3', 'txt', 'svg', 'webm', 'wav'];
+        const disposition = inlineTypes.includes(ext) ? 'inline' : 'attachment';
 
         // Read file and return as response
         const fileBuffer = await readFile(absolutePath);
@@ -64,6 +69,7 @@ export async function GET(
             headers: {
                 'Content-Type': contentType,
                 'Content-Length': fileStats.size.toString(),
+                'Content-Disposition': `${disposition}; filename="${fileName}"`,
                 'Cache-Control': 'public, max-age=31536000, immutable',
             },
         });
