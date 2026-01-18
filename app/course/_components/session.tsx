@@ -85,13 +85,22 @@ const getViewUrl = (fileUrl: string, fileType: string) => {
     return fileUrl;
   }
 
-  // If it starts with /uploads/, convert to view API
-  if (fileUrl.startsWith('/uploads/')) {
-    const pathAfterUploads = fileUrl.replace('/uploads/', '');
-    return `/api/files/view/${pathAfterUploads}`;
+  // Get file extension
+  const ext = fileUrl.split('.').pop()?.toLowerCase() || '';
+
+  // Office file extensions that need Google Docs Viewer
+  const officeExtensions = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+
+  // Check if it's an Office file
+  if (officeExtensions.includes(ext)) {
+    // Use Google Docs Viewer for Office files
+    // Need full URL for Google Docs Viewer
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const fullUrl = encodeURIComponent(baseUrl + fileUrl);
+    return `https://docs.google.com/viewer?url=${fullUrl}&embedded=true`;
   }
 
-  // Return as-is for external URLs
+  // Return as-is for PDF, images, etc. (they can be displayed inline natively)
   return fileUrl;
 };
 
