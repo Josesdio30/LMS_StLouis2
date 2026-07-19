@@ -179,6 +179,19 @@ export async function POST(request: NextRequest) {
     console.log('Total class_courses found:', allClassCoursesInClass.length);
 
     const allStudentIds = new Set<number>();
+    
+    // 1. Fetch from direct class assignment in student_details
+    const directClassStudents = await prisma.student_details.findMany({
+      where: {
+        class_id: parseInt(classId),
+      },
+      select: {
+        user_id: true,
+      },
+    });
+    directClassStudents.forEach(s => allStudentIds.add(s.user_id));
+
+    // 2. Fetch from existing enrollments in the same class (backward compatibility)
     for (const cc of allClassCoursesInClass) {
       console.log(`Class course ${cc.id}: ${cc.enrollments.length} enrollments`);
       for (const enrollment of cc.enrollments) {

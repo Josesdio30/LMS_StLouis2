@@ -47,7 +47,11 @@ export async function GET(request: NextRequest) {
             enumeration: true,
           },
         },
-        student_details: true,
+        student_details: {
+          include: {
+            classes: true,
+          },
+        },
         teacher_details: true,
         admin_details: true,
       },
@@ -60,35 +64,43 @@ export async function GET(request: NextRequest) {
       // Get class information for students
       let classInfo = null;
       if (user.student_details) {
-        // Find enrollments for this student
-        const studentEnrollments = await prisma.enrollments.findMany({
-          where: {
-            student_id: user.id,
-          },
-          include: {
-            class_courses: {
-              include: {
-                classes: {
-                  include: {
-                    academic_years: true,
+        if (user.student_details.classes) {
+          classInfo = {
+            class_id: user.student_details.classes.id,
+            class_name: user.student_details.classes.class_name,
+            grade_level: user.student_details.classes.grade_level,
+          };
+        } else {
+          // Fallback to enrollment check (existing logic, for safety/backward compatibility)
+          const studentEnrollments = await prisma.enrollments.findMany({
+            where: {
+              student_id: user.id,
+            },
+            include: {
+              class_courses: {
+                include: {
+                  classes: {
+                    include: {
+                      academic_years: true,
+                    },
                   },
                 },
               },
             },
-          },
-        });
+          });
 
-        // Get the first active enrollment with active class_course
-        const activeEnrollment = studentEnrollments.find(enrollment => 
-          enrollment.class_courses?.is_active && enrollment.class_courses?.classes
-        );
+          // Get the first active enrollment with active class_course
+          const activeEnrollment = studentEnrollments.find(enrollment => 
+            enrollment.class_courses?.is_active && enrollment.class_courses?.classes
+          );
 
-        if (activeEnrollment?.class_courses?.classes) {
-          classInfo = {
-            class_id: activeEnrollment.class_courses.classes.id,
-            class_name: activeEnrollment.class_courses.classes.class_name,
-            grade_level: activeEnrollment.class_courses.classes.grade_level,
-          };
+          if (activeEnrollment?.class_courses?.classes) {
+            classInfo = {
+              class_id: activeEnrollment.class_courses.classes.id,
+              class_name: activeEnrollment.class_courses.classes.class_name,
+              grade_level: activeEnrollment.class_courses.classes.grade_level,
+            };
+          }
         }
       }
 
@@ -250,13 +262,14 @@ export async function POST(request: NextRequest) {
     });
 
     // Create student details if STUDENT role is selected
-    if (role === '1' && (nis || nisn || parent_contact)) {
+    if (role === '1') {
       await prisma.student_details.create({
         data: {
           user_id: newUser.id,
           nis: nis || '',
           nisn: nisn || '',
           parent_contact: parent_contact || '',
+          class_id: class_id ? parseInt(class_id) : null,
         },
       });
     }

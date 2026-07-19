@@ -167,13 +167,14 @@ export async function PUT(
     });
 
     // Create student details if STUDENT role is selected
-    if (role === '1' && (nis || nisn || parent_contact)) {
+    if (role === '1') {
       await prisma.student_details.create({
         data: {
           user_id: userId,
           nis: nis || '',
           nisn: nisn || '',
           parent_contact: parent_contact || '',
+          class_id: class_id ? parseInt(class_id) : null,
         },
       });
     }

@@ -247,13 +247,13 @@ const AcademicYearManagement = () => {
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() => openEditModal(year)}
-                                    className="bg-yellow-500 text-white px-3 py-1 rounded text-xs hover:bg-yellow-600 transition-colors"
+                                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
                                   >
                                     Edit
                                   </button>
                                   <button
                                     onClick={() => handleDeleteYear(year.id)}
-                                    className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700 transition-colors"
+                                    className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors"
                                   >
                                     Delete
                                   </button>
