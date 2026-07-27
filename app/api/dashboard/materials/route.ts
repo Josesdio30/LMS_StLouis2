@@ -16,46 +16,64 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const limit = parseInt(searchParams.get('limit') || '5');
 
-        let classCourseIds: number[] = [];
+        // Find active academic year if present
+        const activeAcademicYear = await prisma.academic_years.findFirst({
+            where: {
+                is_active: true,
+            },
+        });
 
-        if (userRole === 'STUDENT') {
-            // Get class_courses student is enrolled in
-            const enrollments = await prisma.enrollments.findMany({
-                where: {
-                    student_id: userId,
-                    class_courses: {
-                        is_active: true,
+        const activeYearFilter: any = {
+            is_active: true,
+        };
+
+        if (activeAcademicYear) {
+            activeYearFilter.classes = {
+                year_id: activeAcademicYear.id,
+            };
+        }
+
+        const getClassCourseIds = async (filter: any) => {
+            if (userRole === 'STUDENT') {
+                const enrollments = await prisma.enrollments.findMany({
+                    where: {
+                        student_id: userId,
+                        class_courses: filter,
                     },
-                },
-                select: {
-                    class_course_id: true,
-                },
-            });
-            classCourseIds = enrollments.map(e => e.class_course_id).filter((id): id is number => id !== null);
-        } else if (userRole === 'TEACHER') {
-            // Get class_courses teacher is teaching
-            const teachingCourses = await prisma.class_courses.findMany({
-                where: {
-                    teacher_id: userId,
-                    is_active: true,
-                },
-                select: {
-                    id: true,
-                },
-            });
-            classCourseIds = teachingCourses.map(c => c.id);
-        } else if (userRole === 'ADMIN') {
-            // Admin sees all
-            const allCourses = await prisma.class_courses.findMany({
-                where: {
-                    is_active: true,
-                },
-                select: {
-                    id: true,
-                },
-                take: 50,
-            });
-            classCourseIds = allCourses.map(c => c.id);
+                    select: {
+                        class_course_id: true,
+                    },
+                });
+                return enrollments.map(e => e.class_course_id).filter((id): id is number => id !== null);
+            } else if (userRole === 'TEACHER') {
+                const teachingCourses = await prisma.class_courses.findMany({
+                    where: {
+                        ...filter,
+                        teacher_id: userId,
+                    },
+                    select: {
+                        id: true,
+                    },
+                });
+                return teachingCourses.map(c => c.id);
+            } else if (userRole === 'ADMIN') {
+                const allCourses = await prisma.class_courses.findMany({
+                    where: filter,
+                    select: {
+                        id: true,
+                    },
+                    take: 50,
+                });
+                return allCourses.map(c => c.id);
+            }
+            return [];
+        };
+
+        let classCourseIds = await getClassCourseIds(activeYearFilter);
+
+        // Fallback: If filtering by active academic year returns no courses, fall back to general active class_courses
+        if (classCourseIds.length === 0 && activeAcademicYear) {
+            classCourseIds = await getClassCourseIds({ is_active: true });
         }
 
         if (classCourseIds.length === 0) {
